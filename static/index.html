@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Team 10 | Network Intrusion Detection</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#1d2939;font:15px/1.5 Arial,sans-serif}
+main{max-width:980px;margin:36px auto;padding:28px;background:white;border-radius:18px;box-shadow:0 10px 35px #1b355514}
+h1{margin:0;color:#17365d}p{color:#526174}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+label{font-weight:600;font-size:13px;color:#344054}input{width:100%;padding:10px;margin:6px 0 14px;border:1px solid #cbd5e1;border-radius:8px}
+button{background:#1f4e79;color:white;border:0;border-radius:9px;padding:12px 20px;font-weight:700;cursor:pointer}
+#result{margin-top:20px;padding:18px;border-radius:10px;background:#eef4fa;white-space:pre-wrap}
+small{color:#667085}.actions{display:flex;gap:10px;flex-wrap:wrap}
+</style></head>
+<body><main>
+<h1>Network Intrusion Detection System</h1>
+<p>Team 10 · CSL236 · Enter numeric network-flow features to classify a flow as BENIGN or ATTACK.</p>
+<div class="actions"><button type="button" onclick="loadSample()">Load sample input</button><button type="button" onclick="clearForm()">Clear</button></div>
+<form id="predictForm"><div class="grid" id="fields"></div><button type="submit">Predict traffic class</button></form>
+<div id="result">Prediction results and rule-based tips will appear here.</div>
+<small>Inputs must satisfy the feature contract. Invalid or out-of-range values are rejected with HTTP 422.</small>
+</main>
+<script>
+let schema={};
+async function init(){
+  // Metadata is intentionally exposed as a public data contract, not as model weights.
+  const res=await fetch('/openapi.json'); const spec=await res.json();
+  const props=spec.components.schemas.FeatureValues.properties;
+  const required=spec.components.schemas.FeatureValues.required||[];
+  Object.keys(props).forEach(k=>{
+    const p=props[k]; schema[k]={min:p.minimum??-1e9,max:p.maximum??1e9};
+    const wrap=document.createElement('div');
+    const label=document.createElement('label'); label.textContent=k; label.htmlFor='f_'+k;
+    const input=document.createElement('input'); input.type='number'; input.step='any'; input.required=true;
+    input.id='f_'+k; input.name=k; input.min=schema[k].min; input.max=schema[k].max;
+    input.placeholder=`${schema[k].min} to ${schema[k].max}`; input.value=(schema[k].min+schema[k].max)/2;
+    wrap.append(label,input); document.getElementById('fields').append(wrap);
+  });
+}
+function loadSample(){Object.keys(schema).forEach((k,i)=>{let el=document.getElementById('f_'+k); if(el)el.value=(schema[k].min+schema[k].max)/2;});}
+function clearForm(){document.getElementById('predictForm').reset();document.getElementById('result').textContent='Form cleared.';}
+document.getElementById('predictForm').addEventListener('submit',async e=>{
+ e.preventDefault();const features={};Object.keys(schema).forEach(k=>features[k]=Number(document.getElementById('f_'+k).value));
+ const out=document.getElementById('result');out.textContent='Predicting…';
+ try{const r=await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({features})});
+ const data=await r.json();out.textContent=r.ok?JSON.stringify(data,null,2):`HTTP ${r.status}\n${JSON.stringify(data,null,2)}`;
+ }catch(err){out.textContent='Request failed: '+err;}
+});
+init().catch(e=>document.getElementById('result').textContent='Could not load feature schema: '+e);
+</script></body></html>

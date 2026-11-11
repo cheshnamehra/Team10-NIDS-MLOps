@@ -1,0 +1,23 @@
+name: NIDS CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  train-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Create CI-only synthetic fixture
+        run: python scripts/generate_ci_fixture.py
+      - name: Train three MLflow-tracked configurations
+        run: python train.py --n_estimators 40 --max_depth 8
+      - name: Run automated tests
+        run: pytest -v --tb=short

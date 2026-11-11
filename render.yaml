@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: team10-nids
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
