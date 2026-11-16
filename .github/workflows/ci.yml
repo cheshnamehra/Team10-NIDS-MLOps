@@ -20,4 +20,4 @@ jobs:
       - name: Train three MLflow-tracked configurations
         run: python train.py --n_estimators 40 --max_depth 8
       - name: Run automated tests
-        run: pytest -v --tb=short
+        run: python -m pytest -v --tb=short
